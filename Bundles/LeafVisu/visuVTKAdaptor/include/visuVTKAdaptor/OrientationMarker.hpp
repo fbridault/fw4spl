@@ -13,6 +13,9 @@
 
 #include <fwRenderVTK/IVtkAdaptorService.hpp>
 
+#include <vtkOrientationMarkerWidget.h>
+#include <vtkSmartPointer.h>
+
 namespace visuVTKAdaptor
 {
 
@@ -56,6 +59,8 @@ protected:
 
     /// Horizontal alignment
     std::string m_hAlign;
+
+    vtkSmartPointer<vtkOrientationMarkerWidget> m_widget;
 };
 } //namespace visuVTKAdaptor
 

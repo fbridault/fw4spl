@@ -14,11 +14,9 @@
 #include <vtkActor.h>
 #include <vtkAxesActor.h>
 #include <vtkPolyDataMapper.h>
-#include <vtkOrientationMarkerWidget.h>
 #include <vtkGenericDataObjectReader.h>
 #include <vtkPolyData.h>
 #include <vtkTransform.h>
-#include <vtkSmartPointer.h>
 
 
 fwServicesRegisterMacro( ::fwRenderVTK::IVtkAdaptorService, ::visuVTKAdaptor::OrientationMarker, ::fwData::Object );
@@ -52,21 +50,21 @@ void OrientationMarker::doStart() throw(fwTools::Failed)
     vtkSmartPointer<vtkActor> actor = vtkSmartPointer<vtkActor>::New();
     actor->SetMapper(mapper);
 
-    vtkOrientationMarkerWidget* widget = vtkOrientationMarkerWidget::New();
-    widget->SetOrientationMarker( actor );
-    widget->SetInteractor( this->getInteractor() );
+    m_widget = vtkSmartPointer<vtkOrientationMarkerWidget>::New();
+    m_widget->SetOrientationMarker( actor );
+    m_widget->SetInteractor( this->getInteractor() );
 
     if(m_hAlign == "left")
     {
-        widget->SetViewport( 0.0, 0.0, 0.1, 0.1 );
+        m_widget->SetViewport( 0.0, 0.0, 0.1, 0.1 );
     }
     else if(m_hAlign == "right")
     {
-        widget->SetViewport( 0.9, 0.0, 1, 0.1 );
+        m_widget->SetViewport( 0.9, 0.0, 1, 0.1 );
     }
 
-    widget->SetEnabled( 1 );
-    widget->InteractiveOff();
+    m_widget->SetEnabled( 1 );
+    m_widget->InteractiveOff();
     this->setVtkPipelineModified();
 }
 
@@ -74,6 +72,7 @@ void OrientationMarker::doStart() throw(fwTools::Failed)
 
 void OrientationMarker::doStop() throw(fwTools::Failed)
 {
+    m_widget == nullptr;
     this->removeAllPropFromRenderer();
 }
 
