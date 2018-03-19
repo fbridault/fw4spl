@@ -76,6 +76,7 @@ void OffScreenInteractorManager::installInteractor( ::fwGui::container::fwContai
 void OffScreenInteractorManager::installInteractor(unsigned int width, unsigned int height)
 {
     m_renderWindow = vtkSmartPointer<vtkRenderWindow>::New();
+
     m_renderWindow->SetOffScreenRendering( 1 );
     m_renderWindow->SetSize(static_cast<int>(width), static_cast<int>(height));
 
