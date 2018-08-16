@@ -573,13 +573,37 @@ macro(fwLib FWPROJECT_NAME PROJECT_VERSION)
       $<INSTALL_INTERFACE:${FWPROJECT_NAME}/include/>
     )
 
+    set(${FWPROJECT_NAME}_INCLUDE_INSTALL_DIR fw4spl/${FWPROJECT_NAME} PARENT_SCOPE)
+
+    install(FILES ${${FWPROJECT_NAME}_HEADERS}
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/fw4spl/${FWPROJECT_NAME})
+
+    list(APPEND FW_COMPONENTS ${FWPROJECT_NAME} )
+    set(FW_COMPONENTS ${FW_COMPONENTS} PARENT_SCOPE)
+    list(APPEND INCLUDE_INSTALL_DIRS_VARS ${FWPROJECT_NAME}_INCLUDE_INSTALL_DIR )
+    set(INCLUDE_INSTALL_DIRS_VARS ${INCLUDE_INSTALL_DIRS_VARS} PARENT_SCOPE)
+
     install(
-        TARGETS ${FWPROJECT_NAME} EXPORT Fw4SPLTargets
+        TARGETS ${FWPROJECT_NAME} EXPORT Fw4SPL-${FWPROJECT_NAME}Targets
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/fw4spl
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/fw4spl
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/fw4spl/${FWPROJECT_NAME}
         OPTIONAL NAMELINK_SKIP
+    )
+    # Add all targets to the build-tree export set
+    export( EXPORT Fw4SPL-${FWPROJECT_NAME}Targets
+            FILE "${CMAKE_CURRENT_BINARY_DIR}/Fw4SPL-${FWPROJECT_NAME}Targets.cmake"
+            NAMESPACE Fw4SPL::)
+
+    # Install the Fw4SPLTargets.cmake
+    install(EXPORT Fw4SPL-${FWPROJECT_NAME}Targets
+    FILE
+      Fw4SPL-${FWPROJECT_NAME}Targets.cmake
+    NAMESPACE
+      Fw4SPL::
+    DESTINATION
+      ${FWCONFIG_PACKAGE_LOCATION}
     )
 
     # Adds project into folder lib
@@ -1024,6 +1048,12 @@ if(ADDITIONAL_REPOSITORIES)
     endforeach()
 endif()
 
+include(CMakePackageConfigHelpers)
+
+# Export the package for use from the build-tree
+export(PACKAGE Fw4SPL)
+set(FWCONFIG_PACKAGE_LOCATION lib/cmake/Fw4SPL)
+
 unset(PROJECT_LIST)
 foreach(PROPERTIES_FILE ${PROJECTS_PROPERTIES})
     get_filename_component(PROJECT_DIR ${PROPERTIES_FILE} PATH)
@@ -1151,39 +1181,17 @@ endif()
 # Export and install targets
 # ===============================
 
-include(CMakePackageConfigHelpers)
+# Create the Fw4SPLConfig.cmake file
+set(FWCONFIG_FILE ${CMAKE_SOURCE_DIR}/CMake/build/Fw4SPLConfig.cmake.in)
 
-# Add all targets to the build-tree export set
-export( TARGETS ${PROJECT_LIST}
-        FILE "${CMAKE_CURRENT_BINARY_DIR}/Fw4SPLTargets.cmake")
+configure_file(${FWCONFIG_FILE} "${CMAKE_BINARY_DIR}/Fw4SPLConfig.cmake" )
 
-# Export the package for use from the build-tree
-export(PACKAGE Fw4SPL)
-
-# Create the FooBarConfig.cmake file
-set(ConfigPackageLocation lib/cmake/Fw4SPL)
-set(CONFIG_FILE ${CMAKE_SOURCE_DIR}/CMake/build/Fw4SPLConfig.cmake.in)
-
-configure_package_config_file(${CONFIG_FILE} "${CMAKE_BINARY_DIR}/Fw4SPLConfig.cmake"
-  INSTALL_DESTINATION ${ConfigPackageLocation}
-  )
-
-# Create the FooBarConfigVersion file
+# Create the Fw4SPLConfigVersion file
 set(FW4SPL_VERSION 17.1)
 write_basic_package_version_file(
   "${CMAKE_BINARY_DIR}/Fw4SPLConfigVersion.cmake"
   VERSION ${FW4SPL_VERSION}
   COMPATIBILITY AnyNewerVersion
-)
-
-# Install the Fw4SPLTargets.cmake
-install(EXPORT Fw4SPLTargets
-FILE
-  Fw4SPLTargets.cmake
-NAMESPACE
-  Fw4SPL::
-DESTINATION
-  ${ConfigPackageLocation}
 )
 
 # Install the FooBarConfig.cmake and FooBarConfigVersion.cmake
@@ -1192,7 +1200,7 @@ install(
     "${CMAKE_CURRENT_BINARY_DIR}/Fw4SPLConfig.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/Fw4SPLConfigVersion.cmake"
   DESTINATION
-    ${ConfigPackageLocation}
+    ${FWCONFIG_PACKAGE_LOCATION}
   COMPONENT
     dev
 )
