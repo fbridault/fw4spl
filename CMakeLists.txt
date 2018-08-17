@@ -56,6 +56,8 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")  #racy backward c
 
 option(USE_SYSTEM_LIB "Use system libraries to compile fw4spl" OFF)
 
+option(INSTALL_HEADERS "Install development header files" OFF)
+
 if(NOT USE_SYSTEM_LIB)
     set(EXTERNAL_LIBRARIES CACHE PATH "External libraries location")
 endif()
@@ -243,6 +245,18 @@ macro(groupMaker FWPROJECT_NAME)
     foreach(SRC ${PRJ_BUILD_SOURCES})
         source_group("genFiles" FILES ${SRC})
     endforeach()
+endmacro()
+
+macro(configure_header_file FWPROJECT_NAME FILENAME)
+
+    set(HEADER_FILE_DESTINATION "${CMAKE_BINARY_DIR}/${FWPROJECT_NAME}/include/${FWPROJECT_NAME}/${FILENAME}")
+    configure_file(
+        "${CMAKE_SOURCE_DIR}/CMake/build/${FILENAME}.in"
+        ${HEADER_FILE_DESTINATION}
+        IMMEDIATE @ONLY)
+
+    install(FILES ${HEADER_FILE_DESTINATION}
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/fw4spl/${FWPROJECT_NAME})
 endmacro()
 
 macro(initProject PRJNAME )
@@ -562,34 +576,30 @@ macro(fwLib FWPROJECT_NAME PROJECT_VERSION)
     string(TOUPPER ${FWPROJECT_NAME} PROJECT_NAME_UPCASE)
 
     # create the config.hpp for the current library
-    configure_file(
-        "${CMAKE_SOURCE_DIR}/CMake/build/config.hpp.in"
-        "${CMAKE_BINARY_DIR}/${FWPROJECT_NAME}/include/${FWPROJECT_NAME}/config.hpp"
-        IMMEDIATE @ONLY)
+    configure_header_file(${FWPROJECT_NAME} "config.hpp")
 
     target_include_directories(${FWPROJECT_NAME} PUBLIC
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
       $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/${FWPROJECT_NAME}/include/>
-      $<INSTALL_INTERFACE:${FWPROJECT_NAME}/include/>
     )
 
     set(${FWPROJECT_NAME}_INCLUDE_INSTALL_DIR fw4spl/${FWPROJECT_NAME} PARENT_SCOPE)
 
-    install(FILES ${${FWPROJECT_NAME}_HEADERS}
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/fw4spl/${FWPROJECT_NAME})
+    if(INSTALL_HEADERS)
+        message(${CMAKE_CURRENT_SOURCE_DIR}/include)
+        install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/${FWPROJECT_NAME}
+                DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/fw4spl)
+    endif()
 
     list(APPEND FW_COMPONENTS ${FWPROJECT_NAME} )
     set(FW_COMPONENTS ${FW_COMPONENTS} PARENT_SCOPE)
-    list(APPEND INCLUDE_INSTALL_DIRS_VARS ${FWPROJECT_NAME}_INCLUDE_INSTALL_DIR )
-    set(INCLUDE_INSTALL_DIRS_VARS ${INCLUDE_INSTALL_DIRS_VARS} PARENT_SCOPE)
 
     install(
         TARGETS ${FWPROJECT_NAME} EXPORT Fw4SPL-${FWPROJECT_NAME}Targets
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/fw4spl
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/fw4spl
-        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/fw4spl/${FWPROJECT_NAME}
-        OPTIONAL NAMELINK_SKIP
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/fw4spl/
     )
     # Add all targets to the build-tree export set
     export( EXPORT Fw4SPL-${FWPROJECT_NAME}Targets
@@ -611,10 +621,7 @@ macro(fwLib FWPROJECT_NAME PROJECT_VERSION)
 
     if(ENABLE_PCH AND NOT ${FWPROJECT_NAME}_DISABLE_PCH)
         # create the spyLogLevel.hpp for the current library
-        configure_file(
-            "${CMAKE_SOURCE_DIR}/CMake/build/spyLogLevel.hpp.in"
-            "${CMAKE_BINARY_DIR}/${FWPROJECT_NAME}/include/${FWPROJECT_NAME}/spyLogLevel.hpp"
-            IMMEDIATE @ONLY)
+        configure_header_file(${FWPROJECT_NAME} "spyLogLevel.hpp")
 
         if(${${FWPROJECT_NAME}_PCH_TARGET} STREQUAL ${FWPROJECT_NAME})
             add_precompiled_header(${FWPROJECT_NAME} include/${FWPROJECT_NAME}/pch.hpp)
@@ -1052,7 +1059,7 @@ include(CMakePackageConfigHelpers)
 
 # Export the package for use from the build-tree
 export(PACKAGE Fw4SPL)
-set(FWCONFIG_PACKAGE_LOCATION lib/cmake/Fw4SPL)
+set(FWCONFIG_PACKAGE_LOCATION lib/cmake/fw4spl)
 
 unset(PROJECT_LIST)
 foreach(PROPERTIES_FILE ${PROJECTS_PROPERTIES})
@@ -1178,13 +1185,17 @@ if(ECLIPSE_PROJECT)
     eclipseGenerator(${PROJECT_LIST})
 endif()
 
+if(EXTERNAL_LIBRARIES AND INSTALL_HEADERS)
+    install(DIRECTORY ${EXTERNAL_LIBRARIES}/include DESTINATION ${CMAKE_INSTALL_PREFIX})
+endif()
+
 # Export and install targets
 # ===============================
 
 # Create the Fw4SPLConfig.cmake file
 set(FWCONFIG_FILE ${CMAKE_SOURCE_DIR}/CMake/build/Fw4SPLConfig.cmake.in)
 
-configure_file(${FWCONFIG_FILE} "${CMAKE_BINARY_DIR}/Fw4SPLConfig.cmake" )
+configure_file(${FWCONFIG_FILE} "${CMAKE_BINARY_DIR}/Fw4SPLConfig.cmake" @ONLY)
 
 # Create the Fw4SPLConfigVersion file
 set(FW4SPL_VERSION 17.1)
